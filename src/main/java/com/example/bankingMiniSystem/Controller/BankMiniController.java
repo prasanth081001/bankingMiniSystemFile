@@ -1,5 +1,6 @@
 package com.example.bankingMiniSystem.Controller;
 
+import com.example.bankingMiniSystem.DTOLayer.StatementResponse;
 import com.example.bankingMiniSystem.Entity.AccountDetails;
 import com.example.bankingMiniSystem.Entity.Customer;
 import com.example.bankingMiniSystem.Entity.TransactionDetails;
@@ -41,7 +42,7 @@ public class BankMiniController {
         return detailService.transfer(from, to, amount);
     }
     @GetMapping("/accountStatement/{accNo}")
-    public List<TransactionDetails> statement(@PathVariable String accNo){
-        return transactionRepository.findBySourceAccountOrTargetAccount(accNo,accNo);
+    public StatementResponse getStatement(@PathVariable String accNo){
+       return detailService.getStatement(accNo);
     }
 }

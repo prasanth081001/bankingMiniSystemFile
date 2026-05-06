@@ -1,5 +1,7 @@
 package com.example.bankingMiniSystem.Service;
 
+import com.example.bankingMiniSystem.DTOLayer.StatementResponse;
+import com.example.bankingMiniSystem.DTOLayer.TransactionDTO;
 import com.example.bankingMiniSystem.Entity.AccountDetails;
 import com.example.bankingMiniSystem.Entity.TransactionDetails;
 import com.example.bankingMiniSystem.Repository.AccountRepository;
@@ -7,6 +9,9 @@ import com.example.bankingMiniSystem.Repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +60,48 @@ public class AccountDetailService {
         transactionDetails.setSourceAccount(source);
         transactionDetails.setTargetAccount(target);
         transactionRepository.save(transactionDetails);
+    }
+    public StatementResponse getStatement(String accNo){
+        AccountDetails accountDetails=accountRepository.findByAccountNumber(accNo).orElseThrow(()->new RuntimeException("Account not found "));
+        List<TransactionDetails> transactionDetails=transactionRepository.findBySourceAccountOrTargetAccount(accNo,accNo);
+        double balance=0;
+        List<TransactionDTO> dtoList=new ArrayList<>();
+        for (TransactionDetails t:transactionDetails){
+            TransactionDTO dto=new TransactionDTO();
+            dto.setTransactionId(t.getId());
+            dto.setType(t.getType());
+            dto.setAmount(t.getAmount());
+            dto.setStatus("Success");
+
+            if (t.getType().equalsIgnoreCase("Deposit")){
+                balance+=t.getAmount();
+                dto.setTransactionCategory("Credit");
+            } else if (t.getType().equalsIgnoreCase("Withdraw")) {
+                balance-=t.getAmount();
+                dto.setTransactionCategory("Debit");
+
+            } else if (t.getType().equalsIgnoreCase("Transfer")) {
+                if (accNo.equals(t.getSourceAccount())){
+                    balance-=t.getAmount();
+                    dto.setTransactionCategory("Debit");
+                }else {
+                    balance+=t.getAmount();
+                    dto.setTransactionCategory("Credit");
+                }
+
+            }
+            dto.setRunningBalance(balance);
+            dto.setRemarks("Transaction Completed");
+            dtoList.add(dto);
+        }
+        StatementResponse statementResponse=new StatementResponse();
+        statementResponse.setAccountNumber(accNo);
+        statementResponse.setCustomerName(accountDetails.getCustomer().getName());
+        statementResponse.setOpeningBalance(0.0);
+        statementResponse.setClosingBalance(balance);
+        statementResponse.setTransactions(dtoList);
+
+        return statementResponse;
     }
 
 }
